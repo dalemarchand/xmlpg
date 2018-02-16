@@ -31,7 +31,7 @@ public class Xmlpg
     protected HashMap generatedClassNames = new HashMap();
     
     /** The language types we generate */
-    public enum LanguageType {CPP, JAVA, CSHARP, OBJECTIVEC, JAVASCRIPT, PYTHON }
+    public enum LanguageType {CPP, QTCPP, JAVA, CSHARP, OBJECTIVEC, JAVASCRIPT, PYTHON }
     
     /** As we parse the XML document, this is the class we are currently working on */
     private GeneratedClass currentGeneratedClass = null;
@@ -47,6 +47,9 @@ public class Xmlpg
     
     /** C++ properties--includes, etc. */
     Properties cppProperties = new Properties();
+    
+    /** C++ properties--includes, etc. */
+    Properties qtCppProperties = new Properties();
     
     /** C# properties--using, namespace, etc. */
     Properties csharpProperties = new Properties();
@@ -65,20 +68,23 @@ public class Xmlpg
     
     /** Hash table of all the primitive types we can use (short, long, byte, etc.)*/
     private HashSet primitiveTypes = new HashSet();
-    
-    /** Directory in which the java class package is created */
-    private String javaDirectory = null;
-    
-    /** Directory in which the C++ classes are created */
-    private String cppDirectory = null;
-    
-    //PES
-	/** Directory in which the C# classes are created */
-	private String csharpDirectory = null;
-
-    /** Director in which the objc classes are created */
-    private String objcDirectory = null;
-    
+//    
+//    /** Directory in which the java class package is created */
+//    private String javaDirectory = null;
+//    
+//    /** Directory in which the C++ classes are created */
+//    private String cppDirectory = null;
+//    
+//    /** Directory in which the Qt C++ classes are created */
+//    private String qtCppDirectory = null;
+//    
+//    //PES
+//	/** Directory in which the C# classes are created */
+//	private String csharpDirectory = null;
+//
+//    /** Director in which the objc classes are created */
+//    private String objcDirectory = null;
+//    
     private int classCount = 0;
    
     /**
@@ -90,7 +96,7 @@ public class Xmlpg
                  String languageToGenerate)
     {
         // Which languages to generate
-        boolean generateJava = false, generateCpp=false, generateCs=false, generateObjc=false, generatePython= false;
+//         boolean generateJava = false, generateCpp=false, generateQtCpp=false, generateCs=false, generateObjc=false, generatePython= false;
         LanguageType toGenerate = null;
 
         if(languageToGenerate.equalsIgnoreCase("java"))
@@ -100,6 +106,10 @@ public class Xmlpg
         else if(languageToGenerate.equalsIgnoreCase("cpp"))
         {
             toGenerate = Xmlpg.LanguageType.CPP;
+        }
+        else if(languageToGenerate.equalsIgnoreCase("qtcpp"))
+        {
+            toGenerate = Xmlpg.LanguageType.QTCPP;
         }
         else if(languageToGenerate.equalsIgnoreCase("objc"))
         {
@@ -130,9 +140,7 @@ public class Xmlpg
         {
             System.out.println(e);
         }
-        
-        Iterator iterator = generatedClassNames.values().iterator();
-       
+               
         // This does at least a cursory santity check on the data that has been read in from XML
         // It is far from complete.
         if(!this.astIsPlausible())
@@ -156,6 +164,13 @@ public class Xmlpg
         {
             CppGenerator cppGenerator = new CppGenerator(generatedClassNames, cppProperties);
             cppGenerator.writeClasses();
+        }
+        
+        // Use the same information to generate classes in C++
+        if(toGenerate == Xmlpg.LanguageType.QTCPP)
+        {
+            QtCppGenerator qtCppGenerator = new QtCppGenerator(generatedClassNames, qtCppProperties);
+            qtCppGenerator.writeClasses();
         }
         
         if(toGenerate == Xmlpg.LanguageType.CSHARP)
@@ -193,21 +208,16 @@ public class Xmlpg
      */
     public static void main(String args[])
     {
-        String language = null;
-
-        Properties props = System.getProperties();
-        //props.list(System.out);
-       
         if(args.length < 2 || args.length > 2)
         {
             System.out.println("Usage: Xmlpg xmlFile language"); 
-            System.out.println("Allowable languages are java, cpp, objc, python, and csharp");
+            System.out.println("Allowable languages are java, cpp, qtcpp, objc, python, and csharp");
             System.exit(0);
         }
         
         Xmlpg.preflightArgs(args[0], args[1]);
         
-	Xmlpg gen = new Xmlpg(args[0], args[1]);   
+        new Xmlpg(args[0], args[1]);   
     } // end of main
     
     /** 
@@ -223,7 +233,8 @@ public class Xmlpg
             
             if(!(language.equalsIgnoreCase("java") || language.equalsIgnoreCase("cpp") ||
                language.equalsIgnoreCase("objc") || language.equalsIgnoreCase("csharp") ||
-               language.equalsIgnoreCase("javascript") || language.equalsIgnoreCase("python") ))
+               language.equalsIgnoreCase("javascript") || language.equalsIgnoreCase("python") ||
+							 language.equalsIgnoreCase("qtcpp")))
             {
                 System.out.println("Not a valid language to generate. The options are java, cpp, objc, javascript, python and csharp");
                 System.out.println("Usage: Xmlpg xmlFile language"); 
@@ -382,6 +393,15 @@ public class Xmlpg
                 for(int idx = 0; idx < attributes.getLength(); idx++)
                 {
                     cppProperties.setProperty(attributes.getQName(idx), attributes.getValue(idx));
+                }
+            }
+
+            // qt c++ element--place all the attributes and values into a property list
+            if(qName.equalsIgnoreCase("qtcpp"))
+            {
+                for(int idx = 0; idx < attributes.getLength(); idx++)
+                {
+                    qtCppProperties.setProperty(attributes.getQName(idx), attributes.getValue(idx));
                 }
             }
 
